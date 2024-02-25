@@ -3,6 +3,7 @@ const fs = require("fs");
 const http = require("http");
 const url = require("url");
 const replaceTemplate = require("./modules/replaceTemlate");
+const slugify = require("slugify");
 const tempOverview = fs.readFileSync(
   `${__dirname}/templates/template-overview.html`,
   "utf-8"
@@ -18,6 +19,13 @@ const tempProduct = fs.readFileSync(
 
 const data = fs.readFileSync(`${__dirname}/dev-data/data.json`, "utf-8");
 const dataObject = JSON.parse(data);
+const slugs = dataObject.map((item) =>
+  slugify(item.productName, { lower: true })
+);
+for (let i = 0; i < dataObject.length; i++) {
+  dataObject[i].id = slugs[i];
+}
+
 const server = http.createServer((req, res) => {
   const { query, pathname } = url.parse(req.url, true);
   if (pathname === "/" || pathname === "/overview") {
@@ -28,7 +36,7 @@ const server = http.createServer((req, res) => {
     const output = tempOverview.replace(/{%PRODUCTCADS%}/g, cardHtml);
     res.end(output);
   } else if (pathname === "/product") {
-    const product = dataObject[query.id];
+    const product = dataObject.find((item) => item.id === query.id);
     res.writeHead(200, { "Content-type": "text/html" });
     const output = replaceTemplate(tempProduct, product);
     res.end(output);
